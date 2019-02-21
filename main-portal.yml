@@ -1,0 +1,5 @@
+---
+- import_playbook: java-playbook.yml
+- import_playbook: portal-install.yml
+- import_playbook: apm-portal.yml
+

@@ -1,0 +1,90 @@
+---
+- hosts: localhost
+  become: True
+  become_method: "sudo"
+  gather_facts: False
+
+  tasks:
+   - name: Portal db configuration
+     lineinfile: 
+      dest: /etc/vcs/cegp/apm-alipay.conf
+      state: present
+      regexp: '^apm.alipay.service'
+      line: 'apm.alipay.service.http.port=8082'
+      backup: yes
+
+   - name: Portal db configuration
+     lineinfile: 
+      dest: /etc/vcs/cegp/apm/apm-alipay.conf
+      state: present
+      regexp: '^apm.alipay.database'
+      line: 'apm.alipay.database.url=jdbc:mysql://${aws_instance.apm-db_ip.id}:3306/paas'
+      backup: yes
+
+   - name: Remove the .~vault-store
+     command: cd /home/vcs_cegp
+     args:
+       removes: .~vault-store
+  
+   - name: Remove the VAULT.dat file
+     command: cd /opt/vcs/cegp/apm/apm-alipay
+     args:
+       removes: VAULT.dat
+
+   - name: install cegp vault security group
+     expect:
+       command: java -jar /opt/vcs/cegp/security-tools/lib/vault-security-run-1.2.2.jar
+       responses:
+         Would you like to create a new key file \(Y/N\)?: "Y"
+         Enter directory to store encrypted files: "/opt/vcs/cegp/apm/apm-alipay/vault"
+         Enter Keystore URL:  "/opt/vcs/cegp/apm/apm-alipay/vault/vault.keystore"
+         Enter Keystore password:  "alipayStore"
+         Enter Keystore password again: "alipayStore"
+         Enter Keystore Alias: "alipayVault"
+         'Please enter a Digit\:\: 1\: Add key 2\: Remove key 3\: Rename key 4\: List all keys 5\: Exit': "1"
+         Would you like to autogenerate the key value (Y/N)?: "N"
+         Enter Attribute value: "paas"
+         Enter Attribute value again: "paas"
+         Enter Vault Block: "ALIPAY-DB"
+         Enter Attribute Name: "username"
+         'Please enter a Digit\:\: 1\: Add key 2\: Remove key 3\: Rename key 4\: List all keys 5\: Exit': "1"
+         Would you like to autogenerate the key value (Y/N)?: "N"
+         Enter Attribute value: "paas"
+         Enter Attribute value again: "paas"
+         Enter Vault Block: "ALIPAY-DB"
+         Enter Attribute Name: "password"
+         'Please enter a Digit\:\: 1\: Add key 2\: Remove key  3\: List all keys 4\: Exit': "4"
+   - name: Replace Vault.properties
+     command: cd /opt/vcs/cegp/apm/apm-portal/apm-portal-instance-1
+     args:
+       removes: vault.properties
+   - name: copying file
+     copy:
+       src: /home/ec2-user/vault.properties
+       dest: /opt/vcs/cegp/apm/apm-portal/apm-portal-instance-1
+       remote_src: yes
+   - name: starting Vault server
+     command: service vaultpass-server start
+   - name: starting sh client
+     expect:
+       command: sh /opt/vcs/cegp/security-tools/bin/vaultpass-client.sh
+       responses:
+         'Please enter a Digit\:\: 1\: Init server 2\: Add key 3\: Remove key  4\: Check status 5\: Exit': "1"
+         Please enter the custodian number, 1|2: 1
+         Please enter the password: "sur"
+         Please enter the password again: "sur"
+         'Please enter a Digit\:\: 1\: Init server 2\: Add key 3\:Remove key 4\: Check status 5\: Exit': "1"
+         Please enter the custodian number, 1|2: 2
+         Please enter the password: "card"
+         Please enter the password again: "card"
+         'Please enter a Digit\:\: 1\: Init server 2\: Add key 3\: Remove key  4\: Check status 5\: Exit': "2"
+         Please enter the name of key: "alipayVaultMasterKey"
+         Please enter the value of the key: "alipayStore"
+         Please enter the value of the key again: "alipayStore"
+         'Please enter a Digit\:\: 1\: Init server 2\: Add key 3\:Remove key  4\:Check status 5\: Exit': "5"
+   - name: starting instance-1
+     shell: systemctl start apm-alipay-instance-1
+   - name: check the LB status
+     shell: curl -i http://private_ip:8082/apm-portal/LB_STATUS 
+     
+    

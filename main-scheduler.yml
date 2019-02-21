@@ -1,0 +1,4 @@
+---
+- import_playbook: java-playbook.yml
+- import_playbook: schedular-install.yml
+- import_playbook: apm-schedular.yml

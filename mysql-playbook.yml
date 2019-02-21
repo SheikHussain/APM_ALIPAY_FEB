@@ -1,0 +1,62 @@
+---
+- hosts: ubuntu
+  become: True
+  become_method: "sudo"
+  gather_facts: False
+  vars_files:
+       - group_vars/all.yml
+  pre_tasks:
+     - raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+  tasks:
+   - name: Install MySQL
+     #apt: name={{ item }} update_cache=yes cache_valid_time=3600 state=present
+     apt: name={{ item }} state=present
+     sudo: yes
+     with_items:
+     - python-mysqldb
+     - mysql-server
+   - name: Start the MySQL service
+     sudo: yes
+     service:
+       name: mysql
+       state: started
+       enabled: true
+
+   - name: Create Database
+     mysql_db: name= "{{ item }}" state=present
+     with_items:
+       - "{{ db_name }}"
+
+   - name: Create user and set password for that
+     mysql_user: name='{{db_user}}' password='{{db_user_password}}'  priv='*.*:ALL' state=present
+   - name: Copy a 01_CEGP-4028_DDL.sql
+     copy:
+       src: /etc/ansible/apm-scripts/01_CEGP-4028_DDL.sql
+       dest: /home/ubuntu
+       selevel: s0
+   - name: Importing data
+     shell: mysql -u {{db_user}} -p{{db_user_password}} {{db_name}} < 01_CEGP-4028_DDL.sql
+     args:
+       chdir: /home/ubuntu
+
+   - name: Copy a 02_CEGP-4028_DDL.sql
+     copy:
+       src: /etc/ansible/apm-scripts/02_CEGP-4028_DDL.sql
+       dest: /home/ubuntu
+       selevel: s0
+   - name: Importing data
+     shell: mysql -u {{db_user}} -p{{db_user_password}} {{db_name}} < 02_CEGP-4028_DDL.sql
+     args:
+       chdir: /home/ubuntu
+   - name: Copy a 03_CEGP-4028_DML.sql
+     copy:
+       src: /etc/ansible/apm-scripts/03_CEGP-4028_DML.sql
+       dest: /home/ubuntu
+       selevel: s0
+   - name: Importing data
+     shell: mysql -u {{db_user}} -p{{db_user_password}} {{db_name}} < 03_CEGP-4028_DML.sql
+     args:
+       chdir: /home/ubuntu
+
+
+

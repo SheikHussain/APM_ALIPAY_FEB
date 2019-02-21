@@ -1,0 +1,37 @@
+---
+- hosts: localhost
+  become: yes
+  tasks:
+   - name: Copying JDK
+     copy:
+       src: /root/aws-infra/jdk-8u201-linux-x64.rpm
+       dest: /home/ec2-user
+       #remote_src: yes
+   - name: installing jdk8 and jre8
+     yum:
+      name: /home/ec2-user/jdk-8u201-linux-x64.rpm
+      state: present
+
+   - name: Copying JRE
+     copy:
+       src: /root/aws-infra/jre-8u201-linux-x64.rpm
+       dest: /home/ec2-user
+       #remote_src: yes
+
+   - name: Install package.
+     yum:
+      name: /home/ec2-user/jre-8u201-linux-x64.rpm
+      state: present
+
+   - name: Set JAVA_HOME
+     lineinfile:
+      dest: /etc/environment
+      state: present
+      regexp: '^JAVA_HOME'
+      line: 'JAVA_HOME=/usr/lib/jvm/jdk'
+   - name: Set JRE_HOME
+     lineinfile:
+      dest: /etc/environment
+      state: present
+      regexp: '^JRE_HOME'
+      line: 'JAVA_HOME=/usr/lib/jvm/jre' 

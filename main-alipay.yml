@@ -1,0 +1,5 @@
+---
+- import_playbook: java-playbook.yml
+- import_playbook: alipay-install.yml
+- import_playbook: apm-alipay.yml
+

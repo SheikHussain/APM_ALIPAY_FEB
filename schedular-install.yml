@@ -1,0 +1,67 @@
+---
+- hosts: localhost
+  tasks:
+    - name: copy haveged
+      copy:
+        src: /root/aws-infra/haveged-1.9.1-1.el7.x86_64.rpm
+        dest: /home/ec2-user
+        #remote_src: yes
+    - name: install rpm haveged 
+      yum:
+         name: /home/ec2-user/haveged-1.9.1-1.el7.x86_64.rpm  
+         state: present
+    - name: copy cegp
+      copy:
+        src: /root/aws-infra/cegp-security-tools-1.2.2-1.noarch.rpm
+        dest: /home/ec2-user
+        #remote_src: yes
+    - name: Install package.
+      yum:
+         name: /home/ec2-user/cegp-security-tools-1.2.2-1.noarch.rpm
+         state: present
+    - name: copy schedular
+      copy:
+        src: /root/aws-infra/apm-scheduler-1.0.3-1.noarch.rpm
+        dest: /home/ec2-user
+        #remote_src: yes
+
+    - name: Install package.
+      yum:
+         name: /home/ec2-user/apm-scheduler-1.0.3-1.noarch.rpm
+         state: present
+    - name: make sure haveged running
+      service:
+       name: haveged
+       state: started
+    - name: enableing haveged service
+      command: systemctl enable haveged.service
+    - name: enableing apm-schedular-instance-1 service
+      command: systemctl enable apm-schedular-instance-1.service
+    - name: updateing haveged rpm package
+      shell: rpm -Uvh /home/ec2-user/cegp-security-tools-1.2.2-1.noarch.rpm
+      args:
+        warn: false
+      register: rpm_install
+      failed_when: rpm_install.rc != 0 and "is already installed" not in rpm_install.stderr
+      changed_when: rpm_install.rc == 0
+    - name: updating  apm-schedular  rpm package
+      shell: rpm -Uvh /home/ec2-user/apm-scheduler-1.0.3-1.noarch.rpm
+      args:
+        warn: false
+      register: rpm_install
+      failed_when: rpm_install.rc != 0 and "is already installed" not in rpm_install.stderr
+      changed_when: rpm_install.rc == 0
+    - name: Install Pexpect
+      yum: 
+          name: /home/ec2-user/python-pexpect-3.3-6.1.noarch.rpm
+          state: present 
+   # - name: Updating rpm
+   #  shell: rpm -Uvh python-pexpect-3.3-6.1.noarch.rpm
+
+   
+
+
+ 
+
+
+    
